@@ -81,9 +81,6 @@ export class Campaign {
       return schedule;
     });
 
-    // --- 도메인 유효성 검증 (예시) ---
-    // campaign.validateRequiredSchedules(); // 필요한 경우 여기서 호출
-
     return campaign;
   }
 }
