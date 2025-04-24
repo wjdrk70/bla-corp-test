@@ -166,7 +166,7 @@ describe('Campaign 도메인 엔티티', () => {
         expect.arrayContaining(relatedSchedules),
       );
 
-      campaign.schedules.forEach((schedule) => {
+      campaign.schedules.map((schedule) => {
         expect(schedule.campaign).toBe(campaign);
       });
 
