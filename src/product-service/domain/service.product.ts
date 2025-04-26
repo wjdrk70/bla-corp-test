@@ -33,11 +33,11 @@ export class ServiceProduct {
   })
   updatedAt!: Date;
 
-  @OneToOne(() => Product)
+  @OneToOne(() => Product, (product) => product.id)
   @JoinColumn({ name: 'product_id' })
-  product!: Product;
+  product!: Promise<Product>;
 
-  @ManyToOne(() => Gender, { eager: true })
+  @ManyToOne(() => Gender)
   @JoinColumn({ name: 'gender_id' })
   gender!: Gender;
 

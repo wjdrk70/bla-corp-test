@@ -38,7 +38,7 @@ export class Product {
   })
   updatedAt!: Date;
 
-  @ManyToOne(() => ProductType, { eager: true })
+  @ManyToOne(() => ProductType)
   @JoinColumn({ name: 'product_type_id' })
   productType!: ProductType;
 

@@ -30,11 +30,11 @@ export class VisitProduct {
   })
   updatedAt!: Date;
 
-  @OneToOne(() => Product)
+  @OneToOne(() => Product, (product) => product.id)
   @JoinColumn({ name: 'product_id' })
-  product!: Product;
+  product!: Promise<Product>;
 
-  @ManyToOne(() => Address, { eager: true })
+  @ManyToOne(() => Address)
   @JoinColumn({ name: 'address_id' })
   address!: Address;
 
