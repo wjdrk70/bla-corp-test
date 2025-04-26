@@ -1,11 +1,14 @@
 import {
   Column,
   CreateDateColumn,
-  Entity, JoinColumn, ManyToOne,
+  Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ProductType } from '@/src/product-service/domain/product.type';
+import { ProductProps } from '@/src/product-service/domain/interface/product.props';
 
 @Entity('product')
 export class Product {
@@ -38,4 +41,23 @@ export class Product {
   @ManyToOne(() => ProductType, { eager: true })
   @JoinColumn({ name: 'product_type_id' })
   productType!: ProductType;
+
+  public static create(props: ProductProps): Product {
+    const product = new Product();
+    product.brandName = props.brandName;
+    product.productName = props.productName;
+    product.briefDescription = props.briefDescription;
+    product.guide = props.guide;
+    product.productType = props.productType;
+    return product;
+  }
+
+  public isVisitType(): boolean {
+    return this.productType?.code === 'VISIT';
+  }
+
+  public isServiceType(): boolean {
+    return this.productType?.code === 'SERVICE';
+  }
+
 }

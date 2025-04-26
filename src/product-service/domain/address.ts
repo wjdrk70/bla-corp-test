@@ -28,7 +28,6 @@ export class Address {
   })
   updatedAt!: Date;
 
-  // 팩토리 메서드
   public static create(postalCode: string, roadName: string): Address {
     const address = new Address();
     address.postalCode = postalCode;

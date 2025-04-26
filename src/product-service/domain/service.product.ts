@@ -41,8 +41,11 @@ export class ServiceProduct {
   @JoinColumn({ name: 'gender_id' })
   gender!: Gender;
 
-  // 팩토리 메서드
-  public static create(productId: number, genderId: number, isSponsored: boolean): ServiceProduct {
+  public static create(
+    productId: number,
+    genderId: number,
+    isSponsored: boolean,
+  ): ServiceProduct {
     const serviceProduct = new ServiceProduct();
     serviceProduct.productId = productId;
     serviceProduct.genderId = genderId;
