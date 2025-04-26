@@ -38,7 +38,6 @@ export class VisitProduct {
   @JoinColumn({ name: 'address_id' })
   address!: Address;
 
-  // 팩토리 메서드
   public static create(productId: number, addressId: number): VisitProduct {
     const visitProduct = new VisitProduct();
     visitProduct.productId = productId;

@@ -51,13 +51,13 @@ export class Product {
     product.productType = props.productType;
     return product;
   }
-
   public isVisitType(): boolean {
-    return this.productType?.code === 'VISIT';
+    return this.productType.isVisitType();
   }
 
   public isServiceType(): boolean {
-    return this.productType?.code === 'SERVICE';
+    return this.productType.isServiceType();
   }
+
 
 }

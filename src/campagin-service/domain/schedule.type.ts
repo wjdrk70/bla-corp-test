@@ -48,4 +48,22 @@ export class ScheduleType {
   @ManyToOne(() => InfluencerPlatform, { eager: true })
   @JoinColumn({ name: 'influencer_platform_id' })
   influencerPlatform!: InfluencerPlatform;
+
+  // 스케줄 타입 관련 메서드
+  isRecruitSchedule(): boolean {
+    return this.code === CampaignTypeCode.RECRUIT;
+  }
+
+  isBidSchedule(): boolean {
+    return this.code === CampaignTypeCode.BID;
+  }
+
+  isContentUploadSchedule(): boolean {
+    return this.code === ScheduleTypeCode.CONTENT_UPLOAD;
+  }
+
+  isCastingSchedule(): boolean {
+    return this.code === ScheduleTypeCode.CASTING;
+  }
+
 }

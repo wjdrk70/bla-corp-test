@@ -6,6 +6,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+export enum ProductTypeCode {
+  VISIT = 'VISIT',
+  SERVICE = 'SERVICE',
+}
+
 @Entity('product_type')
 export class ProductType {
   @PrimaryGeneratedColumn()
@@ -27,4 +32,12 @@ export class ProductType {
     onUpdate: 'CURRENT_TIMESTAMP',
   })
   updatedAt!: Date;
+
+  public isVisitType(): boolean {
+    return this.code === ProductTypeCode.VISIT;
+  }
+
+  public isServiceType(): boolean {
+    return this.code === ProductTypeCode.SERVICE;
+  }
 }

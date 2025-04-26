@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ProductRepository } from '@/src/product-service/domain/repository/product.repository';
 import { ProductTypeRepository } from '@/src/product-service/domain/repository/product-type.repository';
 import { GenderRepository } from '@/src/product-service/domain/repository/gender.repository';
@@ -9,48 +9,29 @@ import { CreateProductDto } from '@/src/product-service/ui/create-product.dto';
 import { EntityManager } from 'typeorm';
 import { Product } from '@/src/product-service/domain/product';
 import { ProductProps } from '@/src/product-service/domain/interface/product.props';
-import { Address } from '@/src/product-service/domain/address';
-import { VisitProduct } from '@/src/product-service/domain/visit.product';
-import { ServiceProduct } from '@/src/product-service/domain/service.product';
 import { ProductDomainService } from '@/src/product-service/domain/service/product.domain.service';
+
 
 @Injectable()
 export class ProductService {
   constructor(
-    private productRepository: ProductRepository,
-    private productTypeRepository: ProductTypeRepository,
-    private genderRepository: GenderRepository,
-    private addressRepository: AddressRepository,
-    private visitProductRepository: VisitProductRepository,
-    private serviceProductRepository: ServiceProductRepository,
-    private productDomainService: ProductDomainService,
+    private readonly productDomainService: ProductDomainService,
+    private readonly productTypeRepository: ProductTypeRepository,
+    private readonly genderRepository: GenderRepository,
+    private readonly productRepository: ProductRepository,
+    private readonly addressRepository: AddressRepository,
+    private readonly visitProductRepository: VisitProductRepository,
+    private readonly serviceProductRepository: ServiceProductRepository,
   ) {}
 
-  async createProduct(
-    dto: CreateProductDto,
-    manager: EntityManager,
-  ): Promise<Product> {
-    const productTypeRepositoryTx = manager.withRepository(
-      this.productTypeRepository,
-    );
-    const productRepositoryTx = manager.withRepository(this.productRepository);
-    const genderRepositoryTx = manager.withRepository(this.genderRepository);
-    const addressRepositoryTx = manager.withRepository(this.addressRepository);
-    const visitProductRepositoryTx = manager.withRepository(
-      this.visitProductRepository,
-    );
-    const serviceProductRepositoryTx = manager.withRepository(
-      this.serviceProductRepository,
-    );
+  async createProduct(dto: CreateProductDto, manager: EntityManager): Promise<Product> {
+    const productTypeReader = this.productTypeRepository.withTransaction(manager);
+    const productWriter = this.productRepository.withTransaction(manager);
 
-    const productType = await productTypeRepositoryTx.findProductTypeByCode(
+    // product 타입 조회 Reader 에서 예외 처리 캠슐화
+    const productType = await productTypeReader.findByCodeOrThrow(
       dto.productTypeCode,
     );
-    if (!productType) {
-      throw new NotFoundException(
-        `상품 타입 코드 ${dto.productTypeCode}를 찾을 수 없습니다.`,
-      );
-    }
 
     const productProps: ProductProps = {
       brandName: dto.brandName,
@@ -61,44 +42,76 @@ export class ProductService {
     };
 
     // product entity 생성
-    const product = Product.create(productProps);
-    const savedProduct = await productRepositoryTx.saveProduct(product);
+    const product = this.productDomainService.createProduct(productProps);
+    const savedProduct = await productWriter.save(product);
 
-    // 상품 타입에 따른 추가 정보 저장
-    if (product.isVisitType()) {
-      this.productDomainService.validateVisitProductFields(
-        dto.postalCode,
-        dto.roadName,
-      );
-
-      const address = Address.create(dto.postalCode, dto.roadName);
-      const savedAddress = await addressRepositoryTx.save(address);
-
-      const visitProduct = VisitProduct.create(
-        savedProduct.id,
-        savedAddress.id,
-      );
-
-      await visitProductRepositoryTx.save(visitProduct);
-    } else if (product.isServiceType()) {
-      this.productDomainService.validateServiceProductFields(dto.genderCode);
-
-      const gender = await genderRepositoryTx.findByCode(dto.genderCode);
-      if (!gender) {
-        throw new NotFoundException(
-          `성별 코드 ${dto.genderCode}를 찾을 수 없습니다.`,
-        );
-      }
-
-      const serviceProduct = ServiceProduct.create(
-        savedProduct.id,
-        gender.id,
-        dto.isSponsored,
-      );
-
-      await serviceProductRepositoryTx.save(serviceProduct);
-    }
+    // 상품 타입에 따른 타입별 상품 저장
+    await this.createProductTypeData(savedProduct, dto, manager);
 
     return savedProduct;
+  }
+
+  private async createProductTypeData(
+    product: Product,
+    dto: CreateProductDto,
+    manager: EntityManager,
+  ): Promise<void> {
+    const code = product.productType.code;
+
+    if (product.isVisitType()) {
+      await this.createVisitProductData(product, dto, manager);
+    } else if (product.isServiceType()) {
+      await this.createServiceProductData(product, dto, manager);
+    } else {
+      throw new Error(`지원하지 않는 상품 타입입니다: ${code}`);
+    }
+  }
+
+  // 방문형 상품 데이터 생성
+  private async createVisitProductData(
+    product: Product,
+    dto: CreateProductDto,
+    manager: EntityManager,
+  ): Promise<void> {
+    this.productDomainService.validateVisitProductFields(
+      dto.postalCode,
+      dto.roadName,
+    );
+
+    const addressWriter = this.addressRepository.withTransaction(manager);
+    const visitProductWriter = this.visitProductRepository.withTransaction(manager);
+
+    const address = this.productDomainService.createAddress(
+      dto.postalCode!,
+      dto.roadName!,
+    );
+
+    const savedAddress = await addressWriter.save(address);
+
+    const visitProduct = this.productDomainService.createVisitProduct(
+      product.id,
+      savedAddress.id,
+    );
+
+    await visitProductWriter.save(visitProduct);
+  }
+
+  // 서비스형 상품 데이터 생성
+  private async createServiceProductData(product: Product, dto: CreateProductDto, manager: EntityManager,): Promise<void> {
+    this.productDomainService.validateServiceProductFields(dto.genderCode);
+
+    const genderReader = this.genderRepository.withTransaction(manager);
+    const serviceProductWriter = this.serviceProductRepository.withTransaction(manager);
+
+    // 성별 정보 조회
+    const gender = await genderReader.findByCodeOrThrow(dto.genderCode!);
+
+    const serviceProduct = this.productDomainService.createServiceProduct(
+      product.id,
+      gender.id,
+      dto.isSponsored || false,
+    );
+
+    await serviceProductWriter.save(serviceProduct);
   }
 }
