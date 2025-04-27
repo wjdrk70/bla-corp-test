@@ -10,7 +10,9 @@ import { CampaignDomainService } from '@/src/campagin-service/domain/service/cam
 import { InfluencePlatformRepository } from '@/src/campagin-service/domain/repository/influence-platform.repository';
 import { ScheduleTypeRepository } from '@/src/campagin-service/domain/repository/scehduel-type.repository';
 import { CreateScheduleRequestDto } from '@/src/campagin-service/ui/dto/create-schedule-request.dto';
-import { CampaignSchedule } from '@/src/campagin-service/domain/campaign.schedule';
+import { CampaignListItemDto } from '@/src/campagin-service/ui/dto/campaign-list-item.dto';
+import { CampaignQueryRepository } from '@/src/campagin-service/domain/repository/campaign.query.repository';
+import { PaginatedCampaignListDto } from '@/src/campagin-service/ui/dto/paginated.campaign.list.dto';
 
 @Injectable()
 export class CampaignService {
@@ -23,21 +25,34 @@ export class CampaignService {
     private readonly influencerPlatformRepository: InfluencePlatformRepository,
     private readonly scheduleTypeRepository: ScheduleTypeRepository,
     private readonly productService: ProductService,
-
+    private readonly campaignQueryRepository: CampaignQueryRepository,
   ) {}
+
+  async getAllCampaign(page: number, limit: number): Promise<PaginatedCampaignListDto> {
+    return await this.campaignQueryRepository.findAllForList(page,limit);
+  }
 
   async create(dto: CreateCampaignDto): Promise<Campaign> {
     return await this.dataSource.transaction(async (manager) => {
       // 상품 생성
-      const product = await this.productService.createProduct(dto.product, manager);
+      const product = await this.productService.createProduct(
+        dto.product,
+        manager,
+      );
 
       // 캠페인 생성 참조 데이터 조회
-      const campaignTypeReader = this.campaignTypeRepository.withTransaction(manager);
-      const influencerPlatformReader = this.influencerPlatformRepository.withTransaction(manager);
+      const campaignTypeReader =
+        this.campaignTypeRepository.withTransaction(manager);
+      const influencerPlatformReader =
+        this.influencerPlatformRepository.withTransaction(manager);
 
-
-      const campaignType = await campaignTypeReader.findByCodeOrThrow(dto.campaignTypeCode);
-      const influencerPlatform = await influencerPlatformReader.findByCodeOrThrow(dto.influencerPlatformCode);
+      const campaignType = await campaignTypeReader.findByCodeOrThrow(
+        dto.campaignTypeCode,
+      );
+      const influencerPlatform =
+        await influencerPlatformReader.findByCodeOrThrow(
+          dto.influencerPlatformCode,
+        );
 
       // 캠페인 생성
       const campaignWriter = this.campaignRepository.withTransaction(manager);
@@ -47,6 +62,7 @@ export class CampaignService {
         budget: dto.budget,
         peopleCount: dto.peopleCount,
         productId: product.id,
+        product: product,
         campaignType: campaignType,
         influencerPlatform: influencerPlatform,
       });
@@ -62,10 +78,15 @@ export class CampaignService {
     });
   }
 
-  private async createSchedules(campaign: Campaign,
-                                dto: CreateScheduleRequestDto[], manager: EntityManager):Promise<void> {
-    const scheduleTypeReader = this.scheduleTypeRepository.withTransaction(manager);
-    const campaignScheduleWriter = this.campaignScheduleRepository.withTransaction(manager);
+  private async createSchedules(
+    campaign: Campaign,
+    dto: CreateScheduleRequestDto[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const scheduleTypeReader =
+      this.scheduleTypeRepository.withTransaction(manager);
+    const campaignScheduleWriter =
+      this.campaignScheduleRepository.withTransaction(manager);
 
     const validTypes = await scheduleTypeReader.findByCampaignTypeAndPlatform(
       campaign.campaignType.id,
@@ -79,7 +100,6 @@ export class CampaignService {
       validTypes,
     );
 
-
     const typeMap = new Map(validTypes.map((t) => [t.code, t]));
     const schedules = dto.map(({ scheduleTypeCode, startDate, endDate }) => {
       const scheduleType = typeMap.get(scheduleTypeCode)!; // 이제 무조건 존재
@@ -87,17 +107,14 @@ export class CampaignService {
         campaign.id,
         scheduleType,
         startDate,
-        endDate,
+        endDate ?? null,
       );
     });
-
 
     this.campaignDomainService.validateRequiredScheduleTypes(
       campaign,
       validTypes,
-    )
+    );
     await campaignScheduleWriter.saveMany(schedules);
   }
-
-
 }

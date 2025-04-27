@@ -72,15 +72,17 @@ export class CampaignDomainService {
     startDate?: Date | null,
     endDate?: Date | null,
   ): void {
-    // 공통 검증
-    this.validateCommonScheduleRules(scheduleType, startDate, endDate);
-
-    // 타입별 검증
     if (scheduleType.isCastingSchedule()) {
       this.validateCastingSchedule(startDate);
-    } else if (scheduleType.isContentUploadSchedule()) {
-      this.validateContentUploadSchedule(startDate, endDate);
+      return;
     }
+    // 2) 콘텐츠 업로드 일정이면 전용 검증
+    if (scheduleType.isContentUploadSchedule()) {
+      this.validateContentUploadSchedule(startDate, endDate);
+      return;
+    }
+    // 3) 그 외 (일반/입찰) 일정에 대해 날짜 쌍 검증
+    this.validateCommonScheduleRules(scheduleType, startDate, endDate);
   }
 
   // 공통 스케줄 규칙 검증

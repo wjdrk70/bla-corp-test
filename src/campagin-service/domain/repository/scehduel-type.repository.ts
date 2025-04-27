@@ -5,6 +5,8 @@ import { ScheduleTypeReader } from '@/src/campagin-service/domain/port/scehedule
 import { TransactionalReaderWriter } from '@/src/databases/transactional-reader-writer.repository';
 import { InjectEntityManager } from '@nestjs/typeorm';
 
+
+
 @Injectable()
 export class ScheduleTypeRepository
   extends Repository<ScheduleType>
