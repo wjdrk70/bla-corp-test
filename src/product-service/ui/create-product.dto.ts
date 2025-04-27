@@ -1,4 +1,4 @@
-// src/product-service/ui/dto/create-product.dto.ts
+// src/product-service/ui/dto/create-create-product-request.dto.ts
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateProductDto {

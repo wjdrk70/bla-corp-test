@@ -44,43 +44,26 @@ export class Campaign {
   })
   updatedAt!: Date;
 
-  @ManyToOne(() => CampaignType, { eager: true })
+  @ManyToOne(() => CampaignType)
   @JoinColumn({ name: 'campaign_type_id' })
   campaignType!: CampaignType;
 
-  @ManyToOne(() => InfluencerPlatform, { eager: true })
+  @ManyToOne(() => InfluencerPlatform)
   @JoinColumn({ name: 'influencer_platform_id' })
   influencerPlatform!: InfluencerPlatform;
 
-  @OneToMany(() => CampaignSchedule, (schedule) => schedule.campaign, {
-    cascade: true,
-    eager: true,
-  }) // cascade:true -> 캠페인 저장시 스케줄도 함께 저장
-  schedules!: CampaignSchedule[];
+  @OneToMany(() => CampaignSchedule, (schedule) => schedule.campaign)
+  schedules!: Promise<CampaignSchedule[]>;
 
   public static create(props: CampaignProps): Campaign {
     const campaign = new Campaign();
-
-    // 기본 속성 할당
     campaign.name = props.name;
     campaign.budget = props.budget;
     campaign.peopleCount = props.peopleCount;
     campaign.productId = props.productId;
-    campaign.isDeleted = false; // 기본값 설정
-
-    // --- 연관 객체 할당 ---
-    // 서비스 레이어에서 조회/생성된 완전한 객체를 직접 할당
     campaign.campaignType = props.campaignType;
     campaign.influencerPlatform = props.influencerPlatform;
-
-    // --- 스케줄 처리 및 연관관계 설정 ---
-    // props.schedules 배열의 각 CampaignSchedule 객체에
-    // 현재 생성 중인 Campaign 객체를 연결해줍니다. (양방향 관계 설정)
-    campaign.schedules = props.schedules.map((schedule) => {
-      schedule.campaign = campaign; // CampaignSchedule의 campaign 속성에 현재 캠페인 할당
-      return schedule;
-    });
-
     return campaign;
   }
+
 }
