@@ -25,10 +25,11 @@ export class ProductService {
   ) {}
 
   async createProduct(dto: CreateProductDto, manager: EntityManager): Promise<Product> {
+    // transaction script 로 하나의 atomic 으로 동작
     const productTypeReader = this.productTypeRepository.withTransaction(manager);
     const productWriter = this.productRepository.withTransaction(manager);
 
-    // product 타입 조회 Reader 에서 예외 처리 캠슐화
+    // product 타입 조회 Reader 에서 예외 처리 캠슐화 (도구레이어 활용)
     const productType = await productTypeReader.findByCodeOrThrow(
       dto.productTypeCode,
     );

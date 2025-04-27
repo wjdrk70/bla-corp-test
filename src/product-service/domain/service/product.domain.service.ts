@@ -20,7 +20,6 @@ export class ProductDomainService {
     }
   }
 
-
   createProduct(props: ProductProps): Product {
     return Product.create(props);
   }
