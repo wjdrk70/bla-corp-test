@@ -1,21 +1,5 @@
 SET NAMES utf8mb4;
 
--- 캠페인 aggregate root 테이블
-CREATE TABLE campaign
-(
-    id                     BIGINT PRIMARY KEY AUTO_INCREMENT,
-    product_id             BIGINT         NOT NULL,
-    campaign_type_id       BIGINT         NOT NULL,
-    influencer_platform_id BIGINT         NOT NULL,
-    name                   VARCHAR(200)   NOT NULL, -- 캠페인 명
-    budget                 DECIMAL(15, 2) NOT NULL, -- 예산
-    people_count           INT            NOT NULL, -- 모집,입찰등 인원 공통화,
-    is_deleted             BOOLEAN        NOT NULL DEFAULT FALSE,
-    created_at             TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at             TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-
 
 -- 캠페인 타입 테이블
 CREATE TABLE campaign_type
@@ -43,11 +27,50 @@ CREATE TABLE influencer_platform
   COLLATE=utf8mb4_unicode_ci
   AUTO_INCREMENT = 201;
 
+CREATE TABLE product_type
+(
+    id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code       VARCHAR(50)  NOT NULL UNIQUE, -- 'VISIT','SERVICE'
+    label      VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE = InnoDB
+   DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  AUTO_INCREMENT = 401;
+
+CREATE TABLE gender
+(
+    id         BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code       CHAR(1)     NOT NULL UNIQUE, -- 'M','F'
+    label      VARCHAR(20) NOT NULL,        -- '남성','여성'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
+-- 캠페인 aggregate root 테이블
+CREATE TABLE campaign
+(
+    id                     BIGINT PRIMARY KEY AUTO_INCREMENT,
+    product_id             BIGINT         NOT NULL,
+    campaign_type_id       BIGINT         NOT NULL,
+    influencer_platform_id BIGINT         NOT NULL,
+    name                   VARCHAR(200)   NOT NULL, -- 캠페인 명
+    budget                 DECIMAL(15, 2) NOT NULL, -- 예산
+    people_count           INT            NOT NULL, -- 모집,입찰등 인원 공통화,
+    created_at             TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at             TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;
+
+
 -- 스케줄 타입 테이블
 CREATE TABLE schedule_type
 (
     id                     BIGINT PRIMARY KEY AUTO_INCREMENT,
-    code                   VARCHAR(50)  NOT NULL,        -- 'RECRUIT', 'BID', 'CONTENT_UPLOAD', 'CASTING'
+    code                   VARCHAR(50)  NOT NULL,               -- 'RECRUIT', 'BID', 'CONTENT_UPLOAD', 'CASTING'
     label                  VARCHAR(100) NOT NULL,
     campaign_type_id       BIGINT       NOT NULL,               -- 어떤 캠페인 타입에 적용되는지
     influencer_platform_id BIGINT       NOT NULL,               -- 어떤 플랫폼에 적용되는지
@@ -81,27 +104,18 @@ CREATE TABLE product
 (
     id                BIGINT PRIMARY KEY AUTO_INCREMENT,
     product_type_id   BIGINT       NOT NULL,
+    address_id        BIGINT NULL,
+    gender_id         BIGINT NULL,
     brand_name        VARCHAR(200) NOT NULL,
     product_name      VARCHAR(200) NOT NULL,
     brief_description VARCHAR(500) NOT NULL,
     guide             VARCHAR(500) NOT NULL, -- 서비스, 장소 안내든 '안내'라는 행위 or 본질이니 공통으로 넣음
+    is_sponsored      BOOLEAN NULL DEFAULT FALSE,
     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     INDEX idx_product_type (product_type_id)
 ) DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
-
-
-CREATE TABLE product_type
-(
-    id         BIGINT PRIMARY KEY AUTO_INCREMENT,
-    code       VARCHAR(50)  NOT NULL UNIQUE, -- 'VISIT','SERVICE'
-    label      VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-)  ENGINE = InnoDB
-   DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci
-  AUTO_INCREMENT = 401;
 
 
 CREATE TABLE address
@@ -114,37 +128,6 @@ CREATE TABLE address
 ) DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE gender
-(
-    id         BIGINT PRIMARY KEY AUTO_INCREMENT,
-    code       CHAR(1)     NOT NULL UNIQUE, -- 'M','F'
-    label      VARCHAR(20) NOT NULL,        -- '남성','여성'
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-
-
--- VisitProduct 서브타입
-CREATE TABLE visit_product
-(
-    product_id BIGINT PRIMARY KEY, -- Product.id (1:1)
-    address_id BIGINT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
-
--- ServiceProduct 서브타입
-CREATE TABLE service_product
-(
-    product_id   BIGINT PRIMARY KEY, -- Product.id (1:1)
-    gender_id    BIGINT  NOT NULL,
-    is_sponsored BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at   TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4
-  COLLATE=utf8mb4_unicode_ci;
 
 -- 1) 캠페인 타입
 INSERT INTO campaign_type (code, label)
