@@ -1,4 +1,22 @@
 services:
+  # MySQL 데이터베이스 서비스
+  mysql:
+    image: mysql:8.0
+    container_name: cla-corp
+    environment:
+      MYSQL_ROOT_PASSWORD: mypassword
+      MYSQL_DATABASE: cla-corp
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql-init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+
   # NestJS 애플리케이션 서비스
   app:
     build:
@@ -17,19 +35,6 @@ services:
       DATABASE_PASSWORD: mypassword
       DATABASE_NAME: cla-corp
 
-    restart: unless-stopped
-
-  # MySQL 데이터베이스 서비스
-  mysql:
-    image: mysql:8.0
-    container_name: cla-corp
-    environment:
-      MYSQL_ROOT_PASSWORD: mypassword
-      MYSQL_DATABASE: cla-corp
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
     restart: unless-stopped
 
 volumes:
