@@ -9,6 +9,4 @@ export interface CampaignProps {
   productId: number;
   campaignType: CampaignType;
   influencerPlatform: InfluencerPlatform;
-  schedules: CampaignSchedule[];
-
 }

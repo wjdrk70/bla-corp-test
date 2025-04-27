@@ -9,7 +9,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreateProductRequestDto } from '@/src/campagin-service/ui/dto/create-product-request.dto';
+import { CreateProductRequestDto } from '@/src/product-service/ui/create-product-request.dto';
 import { CreateScheduleRequestDto } from '@/src/campagin-service/ui/dto/create-schedule-request.dto';
 
 

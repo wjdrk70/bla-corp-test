@@ -1,7 +1,9 @@
 import {
   Column,
   CreateDateColumn,
-  Entity, JoinColumn, ManyToOne,
+  Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
   UpdateDateColumn,
@@ -13,16 +15,22 @@ import { ScheduleType } from '@/src/campagin-service/domain/schedule.type';
 @Unique('uq_campaign_schedule', ['campaignId', 'scheduleTypeId'])
 export class CampaignSchedule {
   @PrimaryGeneratedColumn({ type: 'bigint' })
-  id: number;
+  id!: number;
 
   @Column({ name: 'start_date', type: 'date', nullable: true })
-  startDate: Date | null;
+  startDate!: Date | null;
 
   @Column({ name: 'end_date', type: 'date', nullable: true })
-  endDate: Date | null;
+  endDate!: Date | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt!: Date;
+
+  @Column({ name: 'campaign_id' })
+  campaignId!: number;
+
+  @Column({ name: 'schedule_type_id' })
+  scheduleTypeId!: number;
 
   @UpdateDateColumn({
     name: 'updated_at',
@@ -32,11 +40,25 @@ export class CampaignSchedule {
   })
   updatedAt!: Date;
 
-  @ManyToOne(() => Campaign, { eager: true })
+  @ManyToOne(() => Campaign)
   @JoinColumn({ name: 'campaign_id' })
   campaign!: Campaign;
 
-  @ManyToOne(() => ScheduleType, { eager: true })
+  @ManyToOne(() => ScheduleType)
   @JoinColumn({ name: 'schedule_type_id' })
   scheduleType!: ScheduleType;
+
+  public static create(props: {
+    campaignId: number;
+    scheduleTypeId: number;
+    startDate?: Date | null;
+    endDate?: Date | null;
+  }): CampaignSchedule {
+    const schedule = new CampaignSchedule();
+    schedule.campaignId = props.campaignId;
+    schedule.scheduleTypeId = props.scheduleTypeId;
+    schedule.startDate = props.startDate || null;
+    schedule.endDate = props.endDate || null;
+    return schedule;
+  }
 }
