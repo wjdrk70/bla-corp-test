@@ -56,7 +56,7 @@ export class ProductService {
       product = this.productDomainService.createServiceProduct(dto, productType, gender, dto.isSponsored);
 
     } else {
-      // 혹시 모를 예외 처리
+
       throw new Error(`지원하지 않는 상품 타입입니다: ${dto.productTypeCode}`);
     }
 

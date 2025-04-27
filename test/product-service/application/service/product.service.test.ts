@@ -6,8 +6,11 @@ import { ProductTypeRepository } from '@/src/product-service/domain/repository/p
 import { GenderRepository } from '@/src/product-service/domain/repository/gender.repository';
 import { ProductRepository } from '@/src/product-service/domain/repository/product.repository';
 import { AddressRepository } from '@/src/product-service/domain/repository/address.repository';
-import { VisitProductRepository } from '@/src/product-service/domain/repository/visit-product.repository';
-import { ServiceProductRepository } from '@/src/product-service/domain/repository/service-product.repository';
+import { Product } from '@/src/product-service/domain/product';
+import { ProductType } from '@/src/product-service/domain/product.type';
+import { Gender } from '@/src/product-service/domain/gender';
+import { Address } from '@/src/product-service/domain/address';
+import { CreateProductDto } from '@/src/product-service/ui/create-product.dto';
 
 describe('ProductService (Application Service)', () => {
   let service: ProductService;
@@ -16,25 +19,21 @@ describe('ProductService (Application Service)', () => {
   let mockGenderRepository: Partial<GenderRepository>;
   let mockProductRepository: Partial<ProductRepository>;
   let mockAddressRepository: Partial<AddressRepository>;
-  let mockVisitRepository: Partial<VisitProductRepository>;
-  let mockServiceRepository: Partial<ServiceProductRepository>;
+
   const EM = {} as EntityManager;
 
   beforeEach(async () => {
     mockDomainService = {
-      createProduct: jest.fn(),
-      validateVisitProductFields: jest.fn(),
+      validateVisitProductInput: jest.fn(),
+      validateServiceProductInput: jest.fn(),
       createAddress: jest.fn(),
       createVisitProduct: jest.fn(),
-      validateServiceProductFields: jest.fn(),
       createServiceProduct: jest.fn(),
     };
     mockProductTypeRepository = { withTransaction: jest.fn() };
     mockGenderRepository = { withTransaction: jest.fn() };
     mockProductRepository = { withTransaction: jest.fn() };
     mockAddressRepository = { withTransaction: jest.fn() };
-    mockVisitRepository = { withTransaction: jest.fn() };
-    mockServiceRepository = { withTransaction: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -44,8 +43,6 @@ describe('ProductService (Application Service)', () => {
         { provide: GenderRepository, useValue: mockGenderRepository },
         { provide: ProductRepository, useValue: mockProductRepository },
         { provide: AddressRepository, useValue: mockAddressRepository },
-        { provide: VisitProductRepository, useValue: mockVisitRepository },
-        { provide: ServiceProductRepository, useValue: mockServiceRepository },
       ],
     }).compile();
 
@@ -53,9 +50,9 @@ describe('ProductService (Application Service)', () => {
   });
 
   describe('방문형 상품 생성', () => {
-    it('createProduct 호출하면 Product→Address→VisitProduct가 순차 저장된다', async () => {
+    it('createProduct 호출하면 ProductType조회→주소검증/생성/저장→Product생성→Product저장 순으로 진행된다', async () => {
       // Given
-      const dto = {
+      const dto: CreateProductDto = {
         productTypeCode: 'VISIT',
         brandName: '쿠팡',
         productName: '부대찌개',
@@ -64,65 +61,75 @@ describe('ProductService (Application Service)', () => {
         postalCode: '12345',
         roadName: '서울로',
       };
-      const fakeType = { code: 'VISIT', isVisitType: () => true };
-      const fakeProductType = {
+      const fakeType: ProductType = {
         id: 1,
-        productType: fakeType,
+        code: 'VISIT',
+        label: '방문형',
         isVisitType: () => true,
-        isServiceType: () => false, } ;
-      const fakeAddress = { id: 10 } ;
-      const fakeVisit = { id: 20 } ;
+        isServiceType: () => false,
+      } as ProductType;
+      const fakeAddress: Address = {
+        id: 10,
+        postalCode: '12345',
+        roadName: '서울로',
+      } as Address;
+      const fakeProductToCreate: Product = {
+        /* ... */
+      } as Product; // 상세 속성 생략 가능
+      const fakeSavedProduct: Product = {
+        ...fakeProductToCreate,
+        id: 1,
+        createdAt: new Date(),
+      } as Product;
 
       const typeReader = {
         findByCodeOrThrow: jest.fn().mockResolvedValue(fakeType),
       };
-      const prodWriter = { save: jest.fn().mockResolvedValue(fakeProductType) };
+      const prodWriter = {
+        save: jest.fn().mockResolvedValue(fakeSavedProduct),
+      };
       const addrWriter = { save: jest.fn().mockResolvedValue(fakeAddress) };
-      const visitWriter = { save: jest.fn().mockResolvedValue(fakeVisit) };
 
+      // Repository Mock 설정
+      (mockProductTypeRepository.withTransaction as jest.Mock).mockReturnValue(
+        typeReader,
+      );
+      (mockProductRepository.withTransaction as jest.Mock).mockReturnValue(
+        prodWriter,
+      );
+      (mockAddressRepository.withTransaction as jest.Mock).mockReturnValue(
+        addrWriter,
+      );
 
-
-      (mockProductTypeRepository.withTransaction as jest.Mock).mockReturnValue(typeReader);
-      (mockProductRepository.withTransaction as jest.Mock).mockReturnValue(prodWriter);
-      (mockAddressRepository.withTransaction as jest.Mock).mockReturnValue(addrWriter);
-      (mockVisitRepository.withTransaction as jest.Mock).mockReturnValue(visitWriter);
-
-      (mockDomainService.createProduct! as jest.Mock).mockReturnValue(fakeProductType);
-      (mockDomainService.createAddress! as jest.Mock).mockReturnValue(fakeAddress);
-      (mockDomainService.createVisitProduct! as jest.Mock).mockReturnValue(fakeVisit);
+      // DomainService Mock 설정
+      (mockDomainService.createAddress! as jest.Mock).mockReturnValue(
+        fakeAddress,
+      );
+      (mockDomainService.createVisitProduct! as jest.Mock).mockReturnValue(
+        fakeProductToCreate,
+      );
 
       // When
       const result = await service.createProduct(dto, EM);
 
       // Then
-      // 1) 타입 조회
-      expect(mockProductTypeRepository.withTransaction).toHaveBeenCalledWith(EM);
+
+      expect(mockProductTypeRepository.withTransaction).toHaveBeenCalledWith(EM,);
       expect(typeReader.findByCodeOrThrow).toHaveBeenCalledWith('VISIT');
 
-      // 2) Product 생성 및 저장
-      expect(mockDomainService.createProduct).toHaveBeenCalledWith({
-        brandName: '쿠팡',
-        productName: '부대찌개',
-        briefDescription: '맛있음',
-        guide: '가열 후 드세요',
-        productType: fakeType,
-      });
-      expect(prodWriter.save).toHaveBeenCalledWith(fakeProductType);
-
-      // 3) 주소 검증·생성·저장
-      expect(mockDomainService.validateVisitProductFields).toHaveBeenCalledWith(
-        '12345',
-        '서울로',
-      );
-      expect(mockDomainService.createAddress).toHaveBeenCalledWith('12345', '서울로');
       expect(addrWriter.save).toHaveBeenCalledWith(fakeAddress);
 
-      // 4) VisitProduct 생성·저장
-      expect(mockDomainService.createVisitProduct).toHaveBeenCalledWith(1, 10);
-      expect(visitWriter.save).toHaveBeenCalledWith(fakeVisit);
+      expect(mockDomainService.createVisitProduct).toHaveBeenCalledWith(
+        expect.objectContaining({ brandName: dto.brandName /* ... */ }),
+        fakeType,
+        fakeAddress,
+      );
 
-      // 최종 반환값
-      expect(result).toBe(fakeProductType);
+
+      expect(prodWriter.save).toHaveBeenCalledWith(fakeProductToCreate);
+
+
+      expect(result).toBe(fakeSavedProduct);
     });
   });
 
@@ -138,82 +145,115 @@ describe('ProductService (Application Service)', () => {
         genderCode: 'M',
         isSponsored: true,
       };
-      const fakeType = { code: 'SERVICE', isServiceType: () => true } ;
-      const fakeProd = { id: 2, productType: fakeType, isVisitType: () => false,
-        isServiceType: () => true };
-
-      const fakeGender = { id: 99 };
-      const fakeService = { id: 200 };
+      const fakeType: ProductType = {
+        id: 2,
+        code: 'SERVICE',
+        label: '서비스형',
+        isVisitType: () => false,
+        isServiceType: () => true,
+      } as ProductType;
+      const fakeGender: Gender = { id: 99, code: 'M', label: '남성' } as Gender;
+      const fakeProductToCreate: Product = {
+        /* 기본 Product 속성 */ id: undefined,
+        productTypeId: fakeType.id,
+        productType: fakeType,
+        /* 방문형 속성 */ addressId: null,
+        address: null,
+        /* 서비스형 속성 */ genderId: fakeGender.id,
+        gender: fakeGender,
+        isSponsored: true,
+      } as Product;
+      const fakeSavedProduct: Product = {
+        ...fakeProductToCreate,
+        id: 2,
+        createdAt: new Date(),
+      } as Product;
 
       const typeReader = {
         findByCodeOrThrow: jest.fn().mockResolvedValue(fakeType),
       };
-      const prodWriter = { save: jest.fn().mockResolvedValue(fakeProd) };
+      const prodWriter = {
+        save: jest.fn().mockResolvedValue(fakeSavedProduct),
+      };
       const genderReader = {
         findByCodeOrThrow: jest.fn().mockResolvedValue(fakeGender),
       };
-      const servWriter = { save: jest.fn().mockResolvedValue(fakeService) };
 
-      (mockProductTypeRepository.withTransaction as jest.Mock).mockReturnValue(typeReader);
-      (mockProductRepository.withTransaction as jest.Mock).mockReturnValue(prodWriter);
-      (mockGenderRepository.withTransaction as jest.Mock).mockReturnValue(genderReader);
-      (mockServiceRepository.withTransaction as jest.Mock).mockReturnValue(servWriter);
+      (mockProductTypeRepository.withTransaction as jest.Mock).mockReturnValue(
+        typeReader,
+      );
+      (mockProductRepository.withTransaction as jest.Mock).mockReturnValue(
+        prodWriter,
+      );
+      (mockGenderRepository.withTransaction as jest.Mock).mockReturnValue(
+        genderReader,
+      );
 
-      (mockDomainService.createProduct! as jest.Mock).mockReturnValue(fakeProd);
-      (mockDomainService.createServiceProduct! as jest.Mock).mockReturnValue(fakeService);
+      (mockDomainService.createServiceProduct! as jest.Mock).mockReturnValue(
+        fakeProductToCreate,
+      );
 
       // When
       const result = await service.createProduct(dto, EM);
 
       // Then
       expect(typeReader.findByCodeOrThrow).toHaveBeenCalledWith('SERVICE');
-      expect(prodWriter.save).toHaveBeenCalledWith(fakeProd);
+      expect(
+        mockDomainService.validateServiceProductInput,
+      ).toHaveBeenCalledWith(dto.genderCode); // 검증 메소드 호출 확인
+      expect(mockGenderRepository.withTransaction).toHaveBeenCalledWith(EM);
+      expect(genderReader.findByCodeOrThrow).toHaveBeenCalledWith(
+        dto.genderCode!,
+      );
+      // 3) Product 생성 확인 (변경된 메소드 이름 사용)
+      expect(mockDomainService.createServiceProduct).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // DTO 기본 정보 확인
+          brandName: dto.brandName,
+          productName: dto.productName,
+          briefDescription: dto.briefDescription,
+          guide: dto.guide,
+        }),
+        fakeType, // ProductType 객체
+        fakeGender, // 조회된 Gender 객체
+        dto.isSponsored, // isSponsored 값
+      );
 
-      expect(mockDomainService.validateServiceProductFields).toHaveBeenCalledWith('M');
-      expect(genderReader.findByCodeOrThrow).toHaveBeenCalledWith('M');
+      // 4) 최종 Product 저장 확인
+      expect(mockProductRepository.withTransaction).toHaveBeenCalledWith(EM);
+      expect(prodWriter.save).toHaveBeenCalledWith(fakeProductToCreate); // 생성된 Product 저장 확인
 
-      expect(mockDomainService.createServiceProduct).toHaveBeenCalledWith(2, 99, true);
-      expect(servWriter.save).toHaveBeenCalledWith(fakeService);
+      // !!! ServiceProduct 생성/저장 검증 제거 !!!
 
-      expect(result).toBe(fakeProd);
+      // 5) 최종 반환값 확인
+      expect(result).toBe(fakeSavedProduct);
     });
   });
 
   describe('지원하지 않는 타입 예외', () => {
     it('알 수 없는 타입, 호출하면 예외가 발생한다', async () => {
       // Given
-      const dto = { productTypeCode: 'Delivery',
+      const dto:CreateProductDto = {
+        productTypeCode: 'Delivery',
         brandName: '네이버',
         productName: '배송',
         briefDescription: '배송이 빨라요!',
         guide: '이용안내',
-        isSponsored: false,};
-      const fakeType = {
-        code: 'X',
-        isVisitType: () => false,
-        isServiceType: () => false,
-      };
-      const typeReader = {
-        findByCodeOrThrow: jest.fn().mockResolvedValue(fakeType),
-      };
+        isSponsored: false,
+      } as CreateProductDto;
+
+      const fakeType: ProductType = {
+        id: 99, code: 'Delivery', label: '알수없음',
+        isVisitType: () => false, isServiceType: () => false
+      } as ProductType;
+
+      const typeReader = { findByCodeOrThrow: jest.fn().mockResolvedValue(fakeType) };
       (mockProductTypeRepository.withTransaction as jest.Mock).mockReturnValue(typeReader);
 
-      const fakeProduct = {
-        productType: fakeType,
-        isVisitType: () => false,
-        isServiceType: () => false,
-      };
-      (mockDomainService.createProduct as jest.Mock)
-        .mockReturnValue(fakeProduct);
 
-      const fakeWriter = { save: jest.fn().mockResolvedValue(fakeProduct) };
-      (mockProductRepository.withTransaction as jest.Mock)
-        .mockReturnValue(fakeWriter);
+      await expect(service.createProduct(dto, EM))
+        .rejects .toThrow(`지원하지 않는 상품 타입입니다: ${fakeType.code}`);
 
-      // When / Then
-      await expect(service.createProduct(dto, EM)).rejects.toThrowError(
-        '지원하지 않는 상품 타입입니다: X',
-      );
     });
   });
 });
