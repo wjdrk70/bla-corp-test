@@ -6,5 +6,9 @@ export interface ProductProps {
   productName: string;
   briefDescription: string;
   guide: string;
+  productTypeId: number;
   productType: ProductType;
+  addressId?: number | null;
+  genderId?: number | null;
+  isSponsored?: boolean | null;
 }
