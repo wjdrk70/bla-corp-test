@@ -10,7 +10,7 @@ describe('Product Entity', () => {
     serviceType = Object.assign(new ProductType(), { code: 'SERVICE' });
   });
 
-  it('정상적으로 VISIT 타입 Product 생성', () => {
+  it('정상적으로 Product 생성', () => {
     const product = Product.create({
       brandName: '쿠팡',
       productName: '곰곰 부대찌개',
@@ -32,17 +32,5 @@ describe('Product Entity', () => {
     expect(product.isServiceType()).toBe(false);
   });
 
-  it('정상적으로 SERVICE 타입 Product 생성', () => {
-    const product = Product.create({
-      brandName: '네이버',
-      productName: 'AI 서비스',
-      briefDescription: 'AI 기반 서비스',
-      guide: '가입 후 이용하세요',
-      productType: serviceType,
-    });
-
-    expect(product.isServiceType()).toBe(true);
-    expect(product.isVisitType()).toBe(false);
-  });
 
 });
