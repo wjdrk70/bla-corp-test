@@ -12,6 +12,7 @@ import { CampaignType } from '@/src/campagin-service/domain/campaign.type';
 import { InfluencerPlatform } from '@/src/campagin-service/domain/influencer.platform';
 import { CampaignProps } from '@/src/campagin-service/domain/interface/campaign.props';
 import { CampaignSchedule } from '@/src/campagin-service/domain/campaign.schedule';
+import { Product } from '@/src/product-service/domain/product';
 
 @Entity('campaign')
 export class Campaign {
@@ -27,8 +28,6 @@ export class Campaign {
   @Column({ name: 'people_count', type: 'int' })
   peopleCount!: number;
 
-  @Column({ name: 'is_deleted', default: false })
-  isDeleted: boolean = false;
 
   @Column({ name: 'product_id' })
   productId!: number; // 상품 ID만 참조
@@ -43,6 +42,10 @@ export class Campaign {
     onUpdate: 'CURRENT_TIMESTAMP',
   })
   updatedAt!: Date;
+
+  @ManyToOne(() => Product)
+  @JoinColumn({ name: 'product_id' })
+  product!: Product;
 
   @ManyToOne(() => CampaignType)
   @JoinColumn({ name: 'campaign_type_id' })
@@ -61,6 +64,7 @@ export class Campaign {
     campaign.budget = props.budget;
     campaign.peopleCount = props.peopleCount;
     campaign.productId = props.productId;
+    campaign.product= props.product
     campaign.campaignType = props.campaignType;
     campaign.influencerPlatform = props.influencerPlatform;
     return campaign;

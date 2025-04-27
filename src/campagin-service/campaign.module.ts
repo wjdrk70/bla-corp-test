@@ -16,6 +16,7 @@ import { CampaignService } from './application/service/campaign.service';
 import { CampaignController } from './ui/campaign.controller';
 import { ProductModule } from '../product-service/product.module';
 import { DatabaseModule } from '../databases/database.module';
+import { CampaignQueryRepository } from '@/src/campagin-service/domain/repository/campaign.query.repository';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { DatabaseModule } from '../databases/database.module';
     InfluencePlatformRepository,
     CampaignDomainService,
     CampaignService,
+    CampaignQueryRepository
   ],
   exports: [CampaignService],
 })
