@@ -13,9 +13,9 @@ export class CampaignListItemDto {
     productName: string;
     productTypeCode: string;
     briefDescription: string;
-    postalCode:string;
-    roadName:string;
-    genderCode:string;
+    postalCode?:string;
+    roadName?:string;
+    genderCode?:string;
     isSponsored:boolean;
   }
 
