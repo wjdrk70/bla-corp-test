@@ -1,6 +1,6 @@
 import { ScheduleItemDto } from '@/src/campagin-service/ui/dto/schedule-item.dto';
 
-export class CampaignListItemDto {
+export class CampaignDetailItemDto {
   id!: number;
   name!: string;
   budget!: number;

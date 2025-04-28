@@ -13,6 +13,10 @@ import { CreateScheduleRequestDto } from '@/src/campagin-service/ui/dto/create-s
 
 import { CampaignQueryRepository } from '@/src/campagin-service/domain/repository/campaign.query.repository';
 import { PaginatedCampaignListDto } from '@/src/campagin-service/ui/dto/paginated.campaign.list.dto';
+import { Product } from '@/src/product-service/domain/product';
+import { CampaignSchedule } from '@/src/campagin-service/domain/campaign.schedule';
+import { CampaignDetailItemDto } from '@/src/campagin-service/ui/dto/campaign-detail-item.dto';
+
 
 @Injectable()
 export class CampaignService {
@@ -32,7 +36,7 @@ export class CampaignService {
     return await this.campaignQueryRepository.findAllForList(page,limit);
   }
 
-  async create(dto: CreateCampaignDto): Promise<Campaign> {
+  async create(dto: CreateCampaignDto): Promise<CampaignDetailItemDto> {
     return await this.dataSource.transaction(async (manager) => {
       // 상품 생성
       const product = await this.productService.createProduct(
@@ -41,18 +45,11 @@ export class CampaignService {
       );
 
       // 캠페인 생성 참조 데이터 조회
-      const campaignTypeReader =
-        this.campaignTypeRepository.withTransaction(manager);
-      const influencerPlatformReader =
-        this.influencerPlatformRepository.withTransaction(manager);
+      const campaignTypeReader = this.campaignTypeRepository.withTransaction(manager);
+      const influencerPlatformReader = this.influencerPlatformRepository.withTransaction(manager);
 
-      const campaignType = await campaignTypeReader.findByCodeOrThrow(
-        dto.campaignTypeCode,
-      );
-      const influencerPlatform =
-        await influencerPlatformReader.findByCodeOrThrow(
-          dto.influencerPlatformCode,
-        );
+      const campaignType = await campaignTypeReader.findByCodeOrThrow(dto.campaignTypeCode,);
+      const influencerPlatform = await influencerPlatformReader.findByCodeOrThrow(dto.influencerPlatformCode,);
 
       // 캠페인 생성
       const campaignWriter = this.campaignRepository.withTransaction(manager);
@@ -70,11 +67,12 @@ export class CampaignService {
       const savedCampaign = await campaignWriter.save(campaign);
 
       // 스케줄 생성 및 저장
+      let savedSchedules = [];
       if (dto.schedules && dto.schedules.length > 0) {
-        await this.createSchedules(savedCampaign, dto.schedules, manager);
+        savedSchedules =  await this.createSchedules(savedCampaign, dto.schedules, manager);
       }
 
-      return savedCampaign;
+      return this.mapCampaignToCreationResponseDto(savedCampaign, product, savedSchedules);
     });
   }
 
@@ -82,27 +80,29 @@ export class CampaignService {
     campaign: Campaign,
     dto: CreateScheduleRequestDto[],
     manager: EntityManager,
-  ): Promise<void> {
-    const scheduleTypeReader =
-      this.scheduleTypeRepository.withTransaction(manager);
-    const campaignScheduleWriter =
-      this.campaignScheduleRepository.withTransaction(manager);
+  ): Promise<CampaignSchedule[]> {
+    const scheduleTypeReader = this.scheduleTypeRepository.withTransaction(manager);
+    const campaignScheduleWriter = this.campaignScheduleRepository.withTransaction(manager);
 
-    const validTypes = await scheduleTypeReader.findByCampaignTypeAndPlatform(
-      campaign.campaignType.id,
-      campaign.influencerPlatform.id,
-    );
+    const validTypes = await scheduleTypeReader.findByCampaignTypeAndPlatform(campaign.campaignType.id, campaign.influencerPlatform.id,);
 
     const requestedCodes = dto.map((d) => d.scheduleTypeCode);
+
+    // domainService 내 유효성 검증 로직
     this.campaignDomainService.validateSupportedScheduleTypes(
-      campaign,
+      campaign, // campaign 엔티티 객체 전달
       requestedCodes,
-      validTypes,
+      validTypes, // ScheduleType 엔티티 목록 전달
+    );
+
+    this.campaignDomainService.validateRequiredScheduleTypes(
+      campaign, // campaign 엔티티 객체 전달
+      validTypes, // ScheduleType 엔티티 목록 전달
     );
 
     const typeMap = new Map(validTypes.map((t) => [t.code, t]));
     const schedules = dto.map(({ scheduleTypeCode, startDate, endDate }) => {
-      const scheduleType = typeMap.get(scheduleTypeCode)!; // 이제 무조건 존재
+      const scheduleType = typeMap.get(scheduleTypeCode)!;
       return this.campaignDomainService.createCampaignSchedule(
         campaign.id,
         scheduleType,
@@ -111,10 +111,56 @@ export class CampaignService {
       );
     });
 
-    this.campaignDomainService.validateRequiredScheduleTypes(
-      campaign,
-      validTypes,
-    );
-    await campaignScheduleWriter.saveMany(schedules);
+
+   return await campaignScheduleWriter.saveMany(schedules);
+  }
+
+  private mapCampaignToCreationResponseDto(
+    campaign: Campaign,
+    product: Product, // product 엔티티 필요
+    schedules: CampaignSchedule[] // schedule 엔티티 목록 필요
+  ): CampaignDetailItemDto {
+    const responseDto = new CampaignDetailItemDto();
+    responseDto.id = campaign.id;
+    responseDto.name = campaign.name;
+    responseDto.budget = Number(campaign.budget);
+    responseDto.peopleCount = campaign.peopleCount;
+    responseDto.createdAt = campaign.createdAt.toISOString();
+
+    // Product 정보 매핑
+    responseDto.product = {
+      productId: product.id,
+      brandName: product.brandName,
+      productName: product.productName,
+      productTypeCode: product.productType?.code ?? '',
+      briefDescription: product.briefDescription,
+
+      postalCode: product.address?.postalCode,
+      roadName: product.address?.roadName,
+      genderCode: product.gender?.code,
+      isSponsored: product.isSponsored ?? false,
+    };
+
+    // CampaignType 정보 매핑
+    responseDto.campaignType = {
+      code: campaign.campaignType.code,
+      label: campaign.campaignType.label,
+    };
+
+    // InfluencerPlatform 정보 매핑
+    responseDto.influencerPlatform = {
+      code: campaign.influencerPlatform.code,
+      label: campaign.influencerPlatform.label,
+    };
+
+    // Schedules 정보 매핑
+    responseDto.schedules = schedules.map(schedule => ({
+      scheduleTypeCode: schedule.scheduleType?.code ?? '',
+      startDate: schedule.startDate ? String(schedule.startDate) : '',
+      endDate: schedule.endDate ? String(schedule.endDate) : null,
+    }));
+
+
+    return responseDto;
   }
 }
