@@ -8,9 +8,8 @@ import {
   Query,
 } from '@nestjs/common';
 import { CreateCampaignDto } from '@/src/campagin-service/ui/dto/create-campaign.dto';
-import { Campaign } from '@/src/campagin-service/domain/campaign';
 import { CampaignService } from '@/src/campagin-service/application/service/campaign.service';
-import { CampaignListItemDto } from '@/src/campagin-service/ui/dto/campaign-list-item.dto';
+import { CampaignDetailItemDto } from '@/src/campagin-service/ui/dto/campaign-detail-item.dto';
 import { PaginatedCampaignListDto } from '@/src/campagin-service/ui/dto/paginated.campaign.list.dto';
 
 @Controller('campaign')
@@ -26,7 +25,7 @@ export class CampaignController {
   }
 
   @Post()
-  async create(@Body() dto: CreateCampaignDto): Promise<Campaign> {
+  async create(@Body() dto: CreateCampaignDto): Promise<CampaignDetailItemDto> {
     return this.campaignService.create(dto);
   }
 }

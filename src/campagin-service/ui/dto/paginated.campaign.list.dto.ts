@@ -1,6 +1,6 @@
-import { CampaignListItemDto } from '@/src/campagin-service/ui/dto/campaign-list-item.dto';
+import { CampaignDetailItemDto } from '@/src/campagin-service/ui/dto/campaign-detail-item.dto';
 
 export class PaginatedCampaignListDto {
-  items: CampaignListItemDto[];
+  items: CampaignDetailItemDto[];
   totalCount: number;
 }

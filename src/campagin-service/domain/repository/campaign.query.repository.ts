@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CampaignReader } from '@/src/campagin-service/domain/port/campaign.reader';
-import { CampaignListItemDto } from '../../ui/dto/campaign-list-item.dto';
+import { CampaignDetailItemDto } from '../../ui/dto/campaign-detail-item.dto';
 import { DataSource } from 'typeorm';
 import {
   RawAddress,
@@ -157,7 +157,7 @@ export class CampaignQueryRepository implements CampaignReader {
       const genderInfo = c.genderId ? genderMap.get(c.genderId) : null;
       const productTypeInfo = productTypeMap.get(c.productTypeId);
 
-      const productDto: CampaignListItemDto['product'] = {
+      const productDto: CampaignDetailItemDto['product'] = {
         productId: c.productId,
         productName: c.productName,
         brandName: c.brandName,

@@ -13,7 +13,7 @@ describe('Product 도메인 엔티티', () => {
     isServiceType: jest.fn().mockReturnValue(false),
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as ProductType; // 실제 ProductType 메서드를 Mocking
+  } as ProductType;
 
   const serviceType = {
     id: 402,

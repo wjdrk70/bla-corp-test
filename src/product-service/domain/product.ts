@@ -76,7 +76,7 @@ export class Product {
     product.briefDescription = props.briefDescription;
     product.guide = props.guide;
     product.productTypeId = props.productType.id;
-
+    product.productType = props.productType;
     product.addressId = props.addressId;
     product.genderId = props.genderId;
     product.isSponsored = props.isSponsored ?? false;
