@@ -10,7 +10,7 @@ import { CampaignDomainService } from '@/src/campagin-service/domain/service/cam
 import { InfluencePlatformRepository } from '@/src/campagin-service/domain/repository/influence-platform.repository';
 import { ScheduleTypeRepository } from '@/src/campagin-service/domain/repository/scehduel-type.repository';
 import { CreateScheduleRequestDto } from '@/src/campagin-service/ui/dto/create-schedule-request.dto';
-import { CampaignListItemDto } from '@/src/campagin-service/ui/dto/campaign-list-item.dto';
+
 import { CampaignQueryRepository } from '@/src/campagin-service/domain/repository/campaign.query.repository';
 import { PaginatedCampaignListDto } from '@/src/campagin-service/ui/dto/paginated.campaign.list.dto';
 
